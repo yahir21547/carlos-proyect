@@ -8,8 +8,6 @@ from style_utils import ABB_COLORS, aplicar_colorimetria
 
 CONFIG_FILE = "column_config.json"
 excel_path = None
-wb = None
-ws = None
 
 DEFAULT_COLUMNS = {
     "Catalog Number": "A",
@@ -120,14 +118,18 @@ def configurar_columnas():
 
 
 def seleccionar_excel():
-    global excel_path, wb, ws
+    global excel_path
     excel_path = filedialog.askopenfilename(
         title="Selecciona un archivo Excel",
         filetypes=[("Archivos Excel", "*.xlsx")]
     )
     if excel_path:
-        wb = load_workbook(excel_path)
-        ws = wb.active
+        try:
+            wb = load_workbook(excel_path)
+            wb.close()
+        except Exception as exc:
+            messagebox.showerror("Error al abrir Excel", str(exc))
+            excel_path = None
 
 
 def _cell_is_empty(cell):
@@ -152,9 +154,14 @@ def find_next_empty_row(worksheet, columns):
 
 
 def guardar_en_excel(datos):
-    if ws is None:
-        messagebox.showwarning("Excel no seleccionado", "Por favor selecciona un archivo Excel")
+    if excel_path is None:
+        messagebox.showwarning(
+            "Excel no seleccionado", "Por favor selecciona un archivo Excel"
+        )
         return
+
+    wb = load_workbook(excel_path)
+    ws = wb.active
     row = find_next_empty_row(ws, column_config.values())
     for campo, columna in column_config.items():
         valor = datos.get(campo)
@@ -162,6 +169,7 @@ def guardar_en_excel(datos):
             valor = ", ".join(valor)
         ws[f"{columna}{row}"] = valor
     wb.save(excel_path)
+    wb.close()
 
 
 def seleccionar_pdf():

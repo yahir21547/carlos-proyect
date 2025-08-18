@@ -133,24 +133,19 @@ def seleccionar_excel():
 
 
 def _cell_is_empty(cell):
-    """Return True if *cell* should be considered empty.
+    """Return True if *cell* should be considered empty."""
 
-    Cells that are part of a formatted table can contain formulas even when no
-    user data has been entered yet.  In such cases ``cell.value`` will hold the
-    formula string (``'=...'``) and the previous implementation treated that as
-    existing data.  By considering any formula-only cell as empty we correctly
-    append new rows to tables without skipping thousands of rows.
-    """
-
-    return cell.value in (None, "") or cell.data_type == "f"
+    return cell.value in (None, "")
 
 
 def find_next_empty_row(worksheet, columns):
-    row = 2
-    while True:
-        if all(_cell_is_empty(worksheet[f"{col}{row}"]) for col in columns):
-            return row
-        row += 1
+    """Return the next row at the end of the sheet.
+
+    This approach avoids overwriting cells that belong to tables or contain
+    formulas, which could corrupt the workbook.
+    """
+
+    return worksheet.max_row + 1
 
 
 def guardar_en_excel(datos):

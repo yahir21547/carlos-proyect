@@ -27,3 +27,4 @@ def aplicar_colorimetria(widget: tk.Misc) -> None:
     style.configure("Highlight.TEntry", fieldbackground=ABB_COLORS["highlight"])
     style.configure("Completed.TEntry", fieldbackground="#ccffcc")
     style.configure("ReadonlyDark.TEntry", fieldbackground="#a9a9a9")
+

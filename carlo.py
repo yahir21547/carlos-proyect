@@ -1,7 +1,11 @@
+"""Aplicación gráfica para extraer datos de motores desde PDFs."""
+
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, ttk
 import pdfplumber
 import re
+
+from style_utils import aplicar_colorimetria
 
 def extraer_datos(pdf_path):
     datos = {
@@ -58,36 +62,52 @@ def extraer_datos(pdf_path):
 
     return datos
 
-def seleccionar_pdf():
-    file_path = filedialog.askopenfilename(
-        title="Selecciona un archivo PDF",
-        filetypes=[("Archivos PDF", "*.pdf")]
-    )
-    if file_path:
-        datos = extraer_datos(file_path)
-        mostrar_datos(datos)
-        print(datos)  # para depuración
 
-def mostrar_datos(datos):
-    texto_salida.delete(1.0, tk.END)
-    texto_salida.insert(tk.END, 
-        f"Catalog Number: {datos['Catalog Number']}\n"
-        f"HP: {datos['Power (HP)']}\n"
-        f"RPM: {datos['Speed (RPM)']}\n"
-        f"Phase: {datos['Phase']}\n"
-        f"Hz: {datos['Hertz']}\n"
-        f"Volts: {datos['Voltage']}\n"
-        f"Order Codes: {', '.join(datos['Order Codes'])}"
-    )
+class PDFExtractorApp(ttk.Frame):
+    """Interfaz gráfica principal para la extracción de datos."""
 
-# --- INTERFAZ ---
-root = tk.Tk()
-root.title("Extractor de Datos PDF")
+    def __init__(self, master: tk.Misc) -> None:
+        super().__init__(master, padding=10)
+        master.title("Extractor de Datos PDF")
+        aplicar_colorimetria(master)
 
-btn_cargar = tk.Button(root, text="Seleccionar PDF", command=seleccionar_pdf)
-btn_cargar.pack(pady=10)
+        self.btn_cargar = ttk.Button(self, text="Seleccionar PDF", command=self.seleccionar_pdf)
+        self.btn_cargar.pack(pady=10)
 
-texto_salida = tk.Text(root, height=10, width=80)
-texto_salida.pack(pady=10)
+        self.texto_salida = tk.Text(self, height=10, width=80)
+        self.texto_salida.pack(pady=10)
 
-root.mainloop()
+        self.pack()
+
+    def seleccionar_pdf(self) -> None:
+        file_path = filedialog.askopenfilename(
+            title="Selecciona un archivo PDF",
+            filetypes=[("Archivos PDF", "*.pdf")]
+        )
+        if file_path:
+            datos = extraer_datos(file_path)
+            self.mostrar_datos(datos)
+            print(datos)  # para depuración
+
+    def mostrar_datos(self, datos: dict) -> None:
+        self.texto_salida.delete(1.0, tk.END)
+        self.texto_salida.insert(
+            tk.END,
+            f"Catalog Number: {datos['Catalog Number']}\n"
+            f"HP: {datos['Power (HP)']}\n"
+            f"RPM: {datos['Speed (RPM)']}\n"
+            f"Phase: {datos['Phase']}\n"
+            f"Hz: {datos['Hertz']}\n"
+            f"Volts: {datos['Voltage']}\n"
+            f"Order Codes: {', '.join(datos['Order Codes'])}"
+        )
+
+
+def main() -> None:
+    root = tk.Tk()
+    PDFExtractorApp(root)
+    root.mainloop()
+
+
+if __name__ == "__main__":
+    main()

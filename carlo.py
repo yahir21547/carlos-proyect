@@ -132,20 +132,10 @@ def seleccionar_excel():
             excel_path = None
 
 
-def _cell_is_empty(cell):
-    """Return True if *cell* should be considered empty."""
+def find_next_empty_row(ws):
+    """Return the next row index after the last used row in the worksheet."""
 
-    return cell.value in (None, "")
-
-
-def find_next_empty_row(worksheet, columns):
-    """Return the next row at the end of the sheet.
-
-    This approach avoids overwriting cells that belong to tables or contain
-    formulas, which could corrupt the workbook.
-    """
-
-    return worksheet.max_row + 1
+    return ws.max_row + 1
 
 
 def guardar_en_excel(datos):
@@ -157,11 +147,18 @@ def guardar_en_excel(datos):
 
     wb = load_workbook(excel_path)
     ws = wb.active
-    row = find_next_empty_row(ws, column_config.values())
+    row = find_next_empty_row(ws)
     for campo, columna in column_config.items():
         valor = datos.get(campo)
         if campo == "Order Codes":
             valor = ", ".join(valor)
+
+        if isinstance(valor, str) and valor.replace(".", "", 1).isdigit():
+            if "." in valor:
+                valor = float(valor)
+            else:
+                valor = int(valor)
+
         ws[f"{columna}{row}"] = valor
     wb.save(excel_path)
     wb.close()

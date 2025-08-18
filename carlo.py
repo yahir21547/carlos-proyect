@@ -1,6 +1,9 @@
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
-import pdfplumber
+try:
+    import pdfplumber
+except ModuleNotFoundError:  # pragma: no cover - handled at runtime
+    pdfplumber = None
 import re
 import json
 from openpyxl import load_workbook
@@ -41,6 +44,14 @@ def extraer_datos(pdf_path):
         "Voltage": None,
         "Order Codes": []
     }
+
+    if pdfplumber is None:
+        messagebox.showerror(
+            "Dependencia faltante",
+            "El módulo pdfplumber no está instalado. "
+            "Ejecuta 'pip install pdfplumber' e inténtalo de nuevo.",
+        )
+        return datos
 
     with pdfplumber.open(pdf_path) as pdf:
         text = ""

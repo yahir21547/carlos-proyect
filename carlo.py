@@ -1,7 +1,8 @@
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, ttk
 import pdfplumber
 import re
+from style_utils import ABB_COLORS, aplicar_colorimetria
 
 def extraer_datos(pdf_path):
     datos = {
@@ -70,24 +71,35 @@ def seleccionar_pdf():
 
 def mostrar_datos(datos):
     texto_salida.delete(1.0, tk.END)
-    texto_salida.insert(tk.END, 
-        f"Catalog Number: {datos['Catalog Number']}\n"
-        f"HP: {datos['Power (HP)']}\n"
-        f"RPM: {datos['Speed (RPM)']}\n"
-        f"Phase: {datos['Phase']}\n"
-        f"Hz: {datos['Hertz']}\n"
-        f"Volts: {datos['Voltage']}\n"
-        f"Order Codes: {', '.join(datos['Order Codes'])}"
+    texto_salida.insert(
+        tk.END,
+        (
+            f"Catalog Number: {datos['Catalog Number']}\n"
+            f"HP: {datos['Power (HP)']}\n"
+            f"RPM: {datos['Speed (RPM)']}\n"
+            f"Phase: {datos['Phase']}\n"
+            f"Hz: {datos['Hertz']}\n"
+            f"Volts: {datos['Voltage']}\n"
+            f"Order Codes: {', '.join(datos['Order Codes'])}"
+        ),
     )
 
 # --- INTERFAZ ---
 root = tk.Tk()
 root.title("Extractor de Datos PDF")
+aplicar_colorimetria(root)
 
-btn_cargar = tk.Button(root, text="Seleccionar PDF", command=seleccionar_pdf)
+btn_cargar = ttk.Button(root, text="Seleccionar PDF", command=seleccionar_pdf)
 btn_cargar.pack(pady=10)
 
-texto_salida = tk.Text(root, height=10, width=80)
+texto_salida = tk.Text(
+    root,
+    height=10,
+    width=80,
+    bg=ABB_COLORS["bg"],
+    fg=ABB_COLORS["fg"],
+)
 texto_salida.pack(pady=10)
 
 root.mainloop()
+

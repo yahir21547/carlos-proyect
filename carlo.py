@@ -1,8 +1,37 @@
 import tkinter as tk
-from tkinter import filedialog, ttk
+from tkinter import filedialog, ttk, messagebox
 import pdfplumber
 import re
+import json
+from openpyxl import load_workbook
 from style_utils import ABB_COLORS, aplicar_colorimetria
+
+CONFIG_FILE = "column_config.json"
+excel_path = None
+wb = None
+ws = None
+
+DEFAULT_COLUMNS = {
+    "Catalog Number": "A",
+    "Power (HP)": "B",
+    "Speed (RPM)": "C",
+    "Phase": "D",
+    "Hertz": "E",
+    "Voltage": "F",
+    "Order Codes": "G",
+}
+
+
+def load_column_config():
+    try:
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return {**DEFAULT_COLUMNS, **data}
+    except Exception:
+        return DEFAULT_COLUMNS.copy()
+
+
+column_config = load_column_config()
 
 def extraer_datos(pdf_path):
     datos = {
@@ -59,6 +88,69 @@ def extraer_datos(pdf_path):
 
     return datos
 
+def save_column_config():
+    try:
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(column_config, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+
+def configurar_columnas():
+    config_win = tk.Toplevel(root)
+    config_win.title("Configurar Columnas")
+    aplicar_colorimetria(config_win)
+    entries = {}
+    for i, (campo, columna) in enumerate(column_config.items()):
+        tk.Label(config_win, text=campo).grid(row=i, column=0, padx=5, pady=5, sticky="e")
+        e = tk.Entry(config_win)
+        e.insert(0, columna)
+        e.grid(row=i, column=1, padx=5, pady=5)
+        entries[campo] = e
+
+    def guardar():
+        for campo, entry in entries.items():
+            column_config[campo] = entry.get().strip().upper() or DEFAULT_COLUMNS[campo]
+        save_column_config()
+        config_win.destroy()
+
+    ttk.Button(config_win, text="Guardar", command=guardar).grid(
+        row=len(column_config), columnspan=2, pady=10
+    )
+
+
+def seleccionar_excel():
+    global excel_path, wb, ws
+    excel_path = filedialog.askopenfilename(
+        title="Selecciona un archivo Excel",
+        filetypes=[("Archivos Excel", "*.xlsx")]
+    )
+    if excel_path:
+        wb = load_workbook(excel_path)
+        ws = wb.active
+
+
+def find_next_empty_row(worksheet, columns):
+    row = 2
+    while True:
+        if all(worksheet[f"{col}{row}"].value in (None, "") for col in columns):
+            return row
+        row += 1
+
+
+def guardar_en_excel(datos):
+    if ws is None:
+        messagebox.showwarning("Excel no seleccionado", "Por favor selecciona un archivo Excel")
+        return
+    row = find_next_empty_row(ws, column_config.values())
+    for campo, columna in column_config.items():
+        valor = datos.get(campo)
+        if campo == "Order Codes":
+            valor = ", ".join(valor)
+        ws[f"{columna}{row}"] = valor
+    wb.save(excel_path)
+
+
 def seleccionar_pdf():
     file_path = filedialog.askopenfilename(
         title="Selecciona un archivo PDF",
@@ -67,6 +159,7 @@ def seleccionar_pdf():
     if file_path:
         datos = extraer_datos(file_path)
         mostrar_datos(datos)
+        guardar_en_excel(datos)
         print(datos)  # para depuración
 
 def mostrar_datos(datos):
@@ -89,8 +182,14 @@ root = tk.Tk()
 root.title("Extractor de Datos PDF")
 aplicar_colorimetria(root)
 
+btn_excel = ttk.Button(root, text="Seleccionar Excel", command=seleccionar_excel)
+btn_excel.pack(pady=5)
+
+btn_config = ttk.Button(root, text="Configurar Columnas", command=configurar_columnas)
+btn_config.pack(pady=5)
+
 btn_cargar = ttk.Button(root, text="Seleccionar PDF", command=seleccionar_pdf)
-btn_cargar.pack(pady=10)
+btn_cargar.pack(pady=5)
 
 texto_salida = tk.Text(
     root,

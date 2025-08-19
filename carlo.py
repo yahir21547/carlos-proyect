@@ -7,6 +7,7 @@ except ModuleNotFoundError:  # pragma: no cover - handled at runtime
 import re
 import json
 from openpyxl import load_workbook
+import os
 from style_utils import ABB_COLORS, aplicar_colorimetria
 
 CONFIG_FILE = "column_config.json"
@@ -27,12 +28,25 @@ def load_column_config():
     try:
         with open(CONFIG_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-            return {**DEFAULT_COLUMNS, **data}
+
+        loaded_excel_path = data.get("excel_path")
+        columns = {**DEFAULT_COLUMNS, **data.get("columns", {})}
+
+        if loaded_excel_path and os.path.isfile(loaded_excel_path):
+            try:
+                wb = load_workbook(loaded_excel_path)
+                wb.close()
+            except Exception:
+                loaded_excel_path = None
+        else:
+            loaded_excel_path = None
+
+        return columns, loaded_excel_path
     except Exception:
-        return DEFAULT_COLUMNS.copy()
+        return DEFAULT_COLUMNS.copy(), None
 
 
-column_config = load_column_config()
+column_config, excel_path = load_column_config()
 
 def extraer_datos(pdf_path):
     datos = {
@@ -100,7 +114,12 @@ def extraer_datos(pdf_path):
 def save_column_config():
     try:
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(column_config, f, ensure_ascii=False, indent=2)
+            json.dump(
+                {"excel_path": excel_path, "columns": column_config},
+                f,
+                ensure_ascii=False,
+                indent=2,
+            )
     except Exception:
         pass
 
@@ -141,6 +160,7 @@ def seleccionar_excel():
         except Exception as exc:
             messagebox.showerror("Error al abrir Excel", str(exc))
             excel_path = None
+        save_column_config()
 
 
 def find_next_empty_row(ws):

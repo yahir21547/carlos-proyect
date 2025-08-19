@@ -231,9 +231,17 @@ def seleccionar_excel():
         save_column_config()
 
 
-def find_next_empty_row(sheet):
-    """Return the next row index after the last used row in the given sheet."""
+def find_next_empty_row(sheet, columns):
+    """Return the first row index where all given columns are empty.
 
+    Recorre desde la fila 2 (asumiendo encabezados en la fila 1) y busca la
+    primera fila en la que todas las columnas especificadas estén vacías. Si no
+    encuentra ninguna, devuelve la fila siguiente a `sheet.max_row`.
+    """
+
+    for row in range(2, sheet.max_row + 1):
+        if all(sheet[f"{col}{row}"].value in (None, "") for col in columns):
+            return row
     return sheet.max_row + 1
 
 
@@ -250,7 +258,8 @@ def guardar_en_excel(datos):
         ws = wb[sheet_name]
     else:
         ws = wb.active
-    row = find_next_empty_row(ws)
+    columnas = [col for campo, col in column_config.items() if campo != "_sheet"]
+    row = find_next_empty_row(ws, columnas)
     for campo, columna in column_config.items():
         if campo == "_sheet":
             continue

@@ -31,6 +31,7 @@ def load_column_config():
             data = json.load(f)
 
         loaded_excel_path = data.get("excel_path")
+        sheet_name = data.get("_sheet")
         columns = {**DEFAULT_COLUMNS, **data.get("columns", {})}
 
         if loaded_excel_path and os.path.isfile(loaded_excel_path):
@@ -42,9 +43,10 @@ def load_column_config():
         else:
             loaded_excel_path = None
 
-        return columns, loaded_excel_path
+        config = {"_sheet": sheet_name, **columns}
+        return config, loaded_excel_path
     except Exception:
-        return DEFAULT_COLUMNS.copy(), None
+        return {"_sheet": None, **DEFAULT_COLUMNS.copy()}, None
 
 
 column_config, excel_path = load_column_config()
@@ -115,12 +117,12 @@ def extraer_datos(pdf_path):
 def save_column_config():
     try:
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(
-                {"excel_path": excel_path, "columns": column_config},
-                f,
-                ensure_ascii=False,
-                indent=2,
-            )
+            data = {
+                "excel_path": excel_path,
+                "_sheet": column_config.get("_sheet"),
+                "columns": {k: v for k, v in column_config.items() if k != "_sheet"},
+            }
+            json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception:
         pass
 
@@ -229,10 +231,10 @@ def seleccionar_excel():
         save_column_config()
 
 
-def find_next_empty_row(ws):
-    """Return the next row index after the last used row in the worksheet."""
+def find_next_empty_row(sheet):
+    """Return the next row index after the last used row in the given sheet."""
 
-    return ws.max_row + 1
+    return sheet.max_row + 1
 
 
 def guardar_en_excel(datos):
@@ -244,7 +246,7 @@ def guardar_en_excel(datos):
 
     wb = load_workbook(excel_path)
     sheet_name = column_config.get("_sheet")
-    if sheet_name and sheet_name in wb.sheetnames:
+    if sheet_name in wb.sheetnames:
         ws = wb[sheet_name]
     else:
         ws = wb.active

@@ -1,0 +1,13 @@
+{
+  "excel_path": null,
+  "_sheet": null,
+  "columns": {
+    "Catalog Number": "A",
+    "Power (HP)": "B",
+    "Speed (RPM)": "C",
+    "Phase": "D",
+    "Hertz": "E",
+    "Voltage": "F",
+    "Order Codes": "G"
+  }
+}

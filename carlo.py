@@ -7,6 +7,7 @@ except ModuleNotFoundError:  # pragma: no cover - handled at runtime
 import re
 import json
 from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 import os
 from style_utils import ABB_COLORS, aplicar_colorimetria
 
@@ -125,25 +126,90 @@ def save_column_config():
 
 
 def configurar_columnas():
+    if excel_path is None:
+        messagebox.showwarning(
+            "Excel no seleccionado", "Por favor selecciona un archivo Excel"
+        )
+        return
+
+    # Cargar workbook y mapear hojas a columnas disponibles
+    try:
+        wb = load_workbook(excel_path)
+        sheet_map = {}
+        for sheet_name in wb.sheetnames:
+            ws = wb[sheet_name]
+            opciones = {}
+            first_row = list(ws.iter_rows(min_row=1, max_row=1, values_only=True))
+            if first_row:
+                for idx, header in enumerate(first_row[0], start=1):
+                    letra = get_column_letter(idx)
+                    display = str(header).strip() if header else letra
+                    opciones[display] = letra
+            else:
+                for idx in range(1, ws.max_column + 1):
+                    letra = get_column_letter(idx)
+                    opciones[letra] = letra
+            if not opciones:
+                for idx in range(1, 27):
+                    letra = get_column_letter(idx)
+                    opciones[letra] = letra
+            sheet_map[sheet_name] = opciones
+    except Exception as exc:
+        messagebox.showerror("Error al leer Excel", str(exc))
+        return
+    finally:
+        wb.close()
+
     config_win = tk.Toplevel(root)
     config_win.title("Configurar Columnas")
     aplicar_colorimetria(config_win)
-    entries = {}
-    for i, (campo, columna) in enumerate(column_config.items()):
-        tk.Label(config_win, text=campo).grid(row=i, column=0, padx=5, pady=5, sticky="e")
-        e = tk.Entry(config_win)
-        e.insert(0, columna)
-        e.grid(row=i, column=1, padx=5, pady=5)
-        entries[campo] = e
+
+    # Combobox para seleccionar hoja
+    tk.Label(config_win, text="Hoja").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+    sheet_cb = ttk.Combobox(config_win, values=list(sheet_map.keys()), state="readonly")
+    hoja_inicial = column_config.get("_sheet")
+    if hoja_inicial not in sheet_map:
+        hoja_inicial = list(sheet_map.keys())[0]
+    sheet_cb.set(hoja_inicial)
+    sheet_cb.grid(row=0, column=1, padx=5, pady=5)
+
+    # Combobox para columnas por campo
+    field_names = [k for k in column_config.keys() if k != "_sheet"]
+    combos = {}
+    for i, campo in enumerate(field_names):
+        tk.Label(config_win, text=campo).grid(
+            row=i + 1, column=0, padx=5, pady=5, sticky="e"
+        )
+        cb = ttk.Combobox(config_win, state="readonly")
+        cb.grid(row=i + 1, column=1, padx=5, pady=5)
+        combos[campo] = cb
+
+    def cargar_opciones(sheet_name):
+        opciones = list(sheet_map[sheet_name].keys())
+        for campo, cb in combos.items():
+            cb["values"] = opciones
+            letra = column_config.get(campo, DEFAULT_COLUMNS[campo])
+            display = next(
+                (d for d, l in sheet_map[sheet_name].items() if l == letra),
+                opciones[0] if opciones else "",
+            )
+            cb.set(display)
+
+    cargar_opciones(hoja_inicial)
+    sheet_cb.bind("<<ComboboxSelected>>", lambda e: cargar_opciones(sheet_cb.get()))
 
     def guardar():
-        for campo, entry in entries.items():
-            column_config[campo] = entry.get().strip().upper() or DEFAULT_COLUMNS[campo]
+        column_config["_sheet"] = sheet_cb.get()
+        opciones = sheet_map[column_config["_sheet"]]
+        for campo, cb in combos.items():
+            seleccion = cb.get()
+            columna = opciones.get(seleccion, seleccion)
+            column_config[campo] = columna.upper() or DEFAULT_COLUMNS[campo]
         save_column_config()
         config_win.destroy()
 
     ttk.Button(config_win, text="Guardar", command=guardar).grid(
-        row=len(column_config), columnspan=2, pady=10
+        row=len(combos) + 1, columnspan=2, pady=10
     )
 
 
@@ -177,9 +243,15 @@ def guardar_en_excel(datos):
         return
 
     wb = load_workbook(excel_path)
-    ws = wb.active
+    sheet_name = column_config.get("_sheet")
+    if sheet_name and sheet_name in wb.sheetnames:
+        ws = wb[sheet_name]
+    else:
+        ws = wb.active
     row = find_next_empty_row(ws)
     for campo, columna in column_config.items():
+        if campo == "_sheet":
+            continue
         valor = datos.get(campo)
         if campo == "Order Codes":
             valor = ", ".join(valor)

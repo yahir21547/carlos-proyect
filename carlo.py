@@ -11,6 +11,7 @@ from openpyxl.utils import get_column_letter
 import os
 import subprocess
 import sys
+import tempfile
 from style_utils import ABB_COLORS, aplicar_colorimetria
 
 CONFIG_FILE = "column_config.json"
@@ -72,12 +73,24 @@ def extraer_datos(pdf_path):
         )
         return datos
 
-    with pdfplumber.open(pdf_path) as pdf:
-        text = ""
-        for page in pdf.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text.replace("\n", " ") + " "
+    # Preprocesar el PDF con Ghostscript antes de extraer texto
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+        sanitized_pdf = tmp.name
+
+    subprocess.run([
+        "gs", "-o", sanitized_pdf, "-sDEVICE=pdfwrite",
+        "-dPDFSETTINGS=/prepress", pdf_path
+    ], check=True)
+
+    try:
+        with pdfplumber.open(sanitized_pdf) as pdf:
+            text = ""
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text.replace("\n", " ") + " "
+    finally:
+        os.remove(sanitized_pdf)
 
     # --- Catalog Number ---
     match_catalog = re.search(r"Catalog\s+Number\s+([A-Z0-9\-]+)", text, re.IGNORECASE)

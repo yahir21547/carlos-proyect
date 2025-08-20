@@ -283,7 +283,8 @@ def guardar_en_excel(datos):
 def ejecutar_sap():
     """Ejecuta el script que descarga documentos desde SAP."""
     try:
-        subprocess.run([sys.executable, "sap_script.py"], check=True)
+        sap_script_path = os.path.join(os.path.dirname(__file__), "sap_script.py")
+        subprocess.run([sys.executable, sap_script_path], check=True)
         messagebox.showinfo("SAP", "Descarga completada")
     except Exception as exc:
         messagebox.showerror("Error SAP", str(exc))

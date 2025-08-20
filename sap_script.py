@@ -3,6 +3,7 @@ import time
 import re
 import os
 import shutil
+import sys
 
 def get_sap_session():
     SapGuiAuto = win32com.client.GetObject("SAPGUI")
@@ -10,13 +11,15 @@ def get_sap_session():
     connection = application.Children(0)
     return connection.Children(0)
 
-def mover_pdf(change_no):
-    """Busca el PDF más reciente en Temp y lo copia a Downloads con el nombre del Change No."""
+def mover_pdf(change_no, destino_dir):
+    """Busca el PDF más reciente en Temp y lo copia a la carpeta destino."""
     temp_dir = r"C:\Users\MXYAGAR1\AppData\Local\Temp"
-    destino = fr"C:\Users\MXYAGAR1\Downloads\{change_no}.pdf"
+    destino = os.path.join(destino_dir, f"{change_no}.pdf")
 
     time.sleep(3)  # esperar a que SAP cree el archivo
-    pdfs = [os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if f.lower().endswith(".pdf")]
+    pdfs = [
+        os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if f.lower().endswith(".pdf")
+    ]
     if not pdfs:
         print("⚠️ No se encontró ningún PDF en Temp.")
         return
@@ -33,7 +36,7 @@ def buscar_label(session, change_no):
             return child
     return None
 
-def main():
+def main(destino_dir):
     session = get_sap_session()
     print("✅ Conectado a sesión existente.")
 
@@ -89,7 +92,7 @@ def main():
                 pdf_btn = session.findById("wnd[0]/usr/btnCUST_REQ_CONFIG_PDF")
                 pdf_btn.press()
                 print("✅ Botón PDF presionado (documento abierto).")
-                mover_pdf(change_no)
+                mover_pdf(change_no, destino_dir)
             except:
                 print(f"⚠️ No se pudo abrir PDF para {change_no}")
 
@@ -111,4 +114,5 @@ def main():
             print(f"⚠️ Error procesando Change No. {change_no}: {e}")
 
 if __name__ == "__main__":
-    main()
+    destino = sys.argv[1] if len(sys.argv) > 1 else r"C:\\Users\\MXYAGAR1\\Downloads"
+    main(destino)

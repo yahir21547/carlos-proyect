@@ -1,2 +1,4 @@
 openpyxl
 pdfplumber
+pyautogui
+pywin32

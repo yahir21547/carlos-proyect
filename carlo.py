@@ -9,6 +9,8 @@ import json
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 import os
+import subprocess
+import sys
 from style_utils import ABB_COLORS, aplicar_colorimetria
 
 CONFIG_FILE = "column_config.json"
@@ -278,6 +280,15 @@ def guardar_en_excel(datos):
     wb.close()
 
 
+def ejecutar_sap():
+    """Ejecuta el script que descarga documentos desde SAP."""
+    try:
+        subprocess.run([sys.executable, "sap_script.py"], check=True)
+        messagebox.showinfo("SAP", "Descarga completada")
+    except Exception as exc:
+        messagebox.showerror("Error SAP", str(exc))
+
+
 def seleccionar_pdf():
     file_path = filedialog.askopenfilename(
         title="Selecciona un archivo PDF",
@@ -314,6 +325,9 @@ btn_excel.pack(pady=5)
 
 btn_config = ttk.Button(root, text="Configurar Columnas", command=configurar_columnas)
 btn_config.pack(pady=5)
+
+btn_sap = ttk.Button(root, text="Descargar de SAP", command=ejecutar_sap)
+btn_sap.pack(pady=5)
 
 btn_cargar = ttk.Button(root, text="Seleccionar PDF", command=seleccionar_pdf)
 btn_cargar.pack(pady=5)

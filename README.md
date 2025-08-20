@@ -5,8 +5,7 @@ Aplicación sencilla para extraer datos de PDFs de motores y exportarlos a un ar
 ## Uso
 1. **Seleccionar Excel**: elige el archivo de destino donde se guardarán los datos. La ruta se guarda automáticamente y se reutiliza hasta que el usuario elija un nuevo archivo.
 2. **Configurar columnas**: asigna para cada campo la columna correspondiente. Esta configuración se guarda en `column_config.json` para reutilizarse.
-3. **Descargar de SAP**: con el botón *Descargar de SAP* se ejecuta el script `sap_script.py`, que obtiene los documentos desde SAP y los guarda en la ruta definida.
-4. **Seleccionar PDF**: carga un PDF y los datos extraídos se muestran en pantalla y se insertan en la primera fila disponible del Excel sin sobrescribir información existente.
+3. **Descargar y Actualizar**: con el botón *Descargar y Actualizar* se ejecuta el script `sap_script.py`, se procesan automáticamente todos los PDFs descargados y los datos se insertan en el Excel evitando duplicados.
 
 Requiere las librerías `openpyxl` para manipular archivos `.xlsx`,
 `pdfplumber` para extraer texto de los PDFs y `pyautogui` junto con

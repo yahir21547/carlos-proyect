@@ -260,6 +260,16 @@ def guardar_en_excel(datos):
         ws = wb[sheet_name]
     else:
         ws = wb.active
+
+    catalog_col = column_config.get("Catalog Number", DEFAULT_COLUMNS["Catalog Number"])
+    existentes = {
+        ws[f"{catalog_col}{row}"].value for row in range(2, ws.max_row + 1)
+    }
+    catalog_value = datos.get("Catalog Number")
+    if catalog_value and catalog_value in existentes:
+        wb.close()
+        return
+
     columnas = [col for campo, col in column_config.items() if campo != "_sheet"]
     row = find_next_empty_row(ws, columnas)
     for campo, columna in column_config.items():
@@ -285,14 +295,14 @@ def ejecutar_sap():
     global sap_download_dir
     if not sap_download_dir.get():
         carpeta = filedialog.askdirectory(
-            title="Selecciona carpeta destino para PDFs SAP"
+            title="Selecciona carpeta destino para PDFs SAP",
         )
         if not carpeta:
             messagebox.showwarning(
                 "Ruta no seleccionada",
                 "Por favor selecciona una carpeta antes de descargar",
             )
-            return
+            return False
         sap_download_dir.set(carpeta)
 
     try:
@@ -300,24 +310,27 @@ def ejecutar_sap():
         subprocess.run(
             [sys.executable, sap_script_path, sap_download_dir.get()], check=True
         )
-        messagebox.showinfo(
-            "SAP", f"Descarga completada en {sap_download_dir.get()}"
-        )
+        return True
     except Exception as exc:
         messagebox.showerror("Error SAP", str(exc))
+        return False
 
 
-def seleccionar_pdf():
-    file_path = filedialog.askopenfilename(
-        title="Selecciona un archivo PDF",
-        filetypes=[("Archivos PDF", "*.pdf")]
+def descargar_y_actualizar():
+    if not ejecutar_sap():
+        return
+
+    carpeta = sap_download_dir.get()
+    for nombre in os.listdir(carpeta):
+        if nombre.lower().endswith(".pdf"):
+            ruta = os.path.join(carpeta, nombre)
+            datos = extraer_datos(ruta)
+            guardar_en_excel(datos)
+            mostrar_datos(datos)
+
+    messagebox.showinfo(
+        "Proceso completado", "Descarga y actualización finalizadas"
     )
-    if file_path:
-        datos = extraer_datos(file_path)
-        mostrar_datos(datos)
-        guardar_en_excel(datos)
-        print(datos)  # para depuración
-
 def mostrar_datos(datos):
     texto_salida.delete(1.0, tk.END)
     texto_salida.insert(
@@ -344,7 +357,7 @@ sap_download_dir = tk.StringVar(value="")
 sap_frame = ttk.LabelFrame(root, text="Descarga SAP")
 sap_frame.pack(padx=10, pady=10, fill="x")
 
-btn_sap = ttk.Button(sap_frame, text="Descargar de SAP", command=ejecutar_sap)
+btn_sap = ttk.Button(sap_frame, text="Descargar y Actualizar", command=descargar_y_actualizar)
 btn_sap.pack(pady=5)
 
 sap_path_label = ttk.Label(sap_frame, textvariable=sap_download_dir)
@@ -360,8 +373,6 @@ btn_excel.pack(pady=5)
 btn_config = ttk.Button(data_frame, text="Configurar Columnas", command=configurar_columnas)
 btn_config.pack(pady=5)
 
-btn_cargar = ttk.Button(data_frame, text="Seleccionar PDF", command=seleccionar_pdf)
-btn_cargar.pack(pady=5)
 
 texto_salida = tk.Text(
     data_frame,

@@ -1,4 +1,4 @@
 openpyxl
-pdfplumber
+pdfplumber>=0.11.0
 pyautogui
 pywin32

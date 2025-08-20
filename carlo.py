@@ -282,10 +282,27 @@ def guardar_en_excel(datos):
 
 def ejecutar_sap():
     """Ejecuta el script que descarga documentos desde SAP."""
+    global sap_download_dir
+    if not sap_download_dir.get():
+        carpeta = filedialog.askdirectory(
+            title="Selecciona carpeta destino para PDFs SAP"
+        )
+        if not carpeta:
+            messagebox.showwarning(
+                "Ruta no seleccionada",
+                "Por favor selecciona una carpeta antes de descargar",
+            )
+            return
+        sap_download_dir.set(carpeta)
+
     try:
         sap_script_path = os.path.join(os.path.dirname(__file__), "sap_script.py")
-        subprocess.run([sys.executable, sap_script_path], check=True)
-        messagebox.showinfo("SAP", "Descarga completada")
+        subprocess.run(
+            [sys.executable, sap_script_path, sap_download_dir.get()], check=True
+        )
+        messagebox.showinfo(
+            "SAP", f"Descarga completada en {sap_download_dir.get()}"
+        )
     except Exception as exc:
         messagebox.showerror("Error SAP", str(exc))
 
@@ -318,23 +335,36 @@ def mostrar_datos(datos):
 
 # --- INTERFAZ ---
 root = tk.Tk()
-root.title("Extractor de Datos PDF")
+root.title("SAP Descargar | Extracción de Datos")
 aplicar_colorimetria(root)
 
-btn_excel = ttk.Button(root, text="Seleccionar Excel", command=seleccionar_excel)
-btn_excel.pack(pady=5)
+sap_download_dir = tk.StringVar(value="")
 
-btn_config = ttk.Button(root, text="Configurar Columnas", command=configurar_columnas)
-btn_config.pack(pady=5)
+# --- Sección SAP ---
+sap_frame = ttk.LabelFrame(root, text="Descarga SAP")
+sap_frame.pack(padx=10, pady=10, fill="x")
 
-btn_sap = ttk.Button(root, text="Descargar de SAP", command=ejecutar_sap)
+btn_sap = ttk.Button(sap_frame, text="Descargar de SAP", command=ejecutar_sap)
 btn_sap.pack(pady=5)
 
-btn_cargar = ttk.Button(root, text="Seleccionar PDF", command=seleccionar_pdf)
+sap_path_label = ttk.Label(sap_frame, textvariable=sap_download_dir)
+sap_path_label.pack(pady=(0, 5))
+
+# --- Sección Extracción de Datos ---
+data_frame = ttk.LabelFrame(root, text="Extracción de Datos")
+data_frame.pack(padx=10, pady=10, fill="both", expand=True)
+
+btn_excel = ttk.Button(data_frame, text="Seleccionar Excel", command=seleccionar_excel)
+btn_excel.pack(pady=5)
+
+btn_config = ttk.Button(data_frame, text="Configurar Columnas", command=configurar_columnas)
+btn_config.pack(pady=5)
+
+btn_cargar = ttk.Button(data_frame, text="Seleccionar PDF", command=seleccionar_pdf)
 btn_cargar.pack(pady=5)
 
 texto_salida = tk.Text(
-    root,
+    data_frame,
     height=10,
     width=80,
     bg=ABB_COLORS["bg"],
